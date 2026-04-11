@@ -54,6 +54,25 @@ has_user_bus() {
   [[ -n "${XDG_RUNTIME_DIR:-}" && -S "${XDG_RUNTIME_DIR}/bus" ]]
 }
 
+try_enable_linger_and_refresh_bus() {
+  local uid
+  uid="$(id -u)"
+
+  if command -v loginctl >/dev/null 2>&1; then
+    if command -v sudo >/dev/null 2>&1; then
+      sudo loginctl enable-linger "$(whoami)" >/dev/null 2>&1 || true
+    else
+      loginctl enable-linger "$(whoami)" >/dev/null 2>&1 || true
+    fi
+  fi
+
+  if [[ -z "${XDG_RUNTIME_DIR:-}" ]] && [[ -d "/run/user/${uid}" ]]; then
+    export XDG_RUNTIME_DIR="/run/user/${uid}"
+  fi
+
+  has_user_bus
+}
+
 say "Linux telepítő"
 
 missing=()
@@ -136,8 +155,19 @@ if [[ "${MARVEEN_CI:-0}" != "1" ]] && command -v systemctl >/dev/null 2>&1; then
     systemctl --user restart marveen-dashboard.service marveen-channels.service || true
   else
     say "Nincs aktív user systemd bus ebben a sessionben (XDG_RUNTIME_DIR/bus)."
-    say "A service fájlok telepítve lettek, indítsd később így: systemctl --user daemon-reload && systemctl --user enable --now marveen-dashboard.service marveen-channels.service"
-    say "Ha szerveres környezet: sudo loginctl enable-linger $(whoami)"
+    if ask_yes_no "Próbáljam automatikusan javítani (linger + bus refresh)?" 1; then
+      if try_enable_linger_and_refresh_bus; then
+        systemctl --user daemon-reload
+        systemctl --user enable marveen-dashboard.service marveen-channels.service
+        systemctl --user restart marveen-dashboard.service marveen-channels.service || true
+      else
+        say "Az automatikus javítás nem tudta aktiválni a user bus-t ebben a shellben."
+        say "Nyiss új bejelentkezett sessiont, majd futtasd: systemctl --user daemon-reload && systemctl --user enable --now marveen-dashboard.service marveen-channels.service"
+      fi
+    else
+      say "A service fájlok telepítve lettek, indítsd később így: systemctl --user daemon-reload && systemctl --user enable --now marveen-dashboard.service marveen-channels.service"
+      say "Ha szerveres környezet: sudo loginctl enable-linger $(whoami)"
+    fi
   fi
 fi
 
