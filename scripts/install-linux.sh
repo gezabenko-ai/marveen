@@ -50,6 +50,10 @@ run_pkg_install() {
   fi
 }
 
+has_user_bus() {
+  [[ -n "${XDG_RUNTIME_DIR:-}" && -S "${XDG_RUNTIME_DIR}/bus" ]]
+}
+
 say "Linux telepítő"
 
 missing=()
@@ -126,9 +130,15 @@ cp "$INSTALL_DIR/deploy/systemd-user/marveen-dashboard.service" "$HOME/.config/s
 cp "$INSTALL_DIR/deploy/systemd-user/marveen-channels.service" "$HOME/.config/systemd/user/"
 
 if [[ "${MARVEEN_CI:-0}" != "1" ]] && command -v systemctl >/dev/null 2>&1; then
-  systemctl --user daemon-reload
-  systemctl --user enable marveen-dashboard.service marveen-channels.service
-  systemctl --user restart marveen-dashboard.service marveen-channels.service || true
+  if has_user_bus; then
+    systemctl --user daemon-reload
+    systemctl --user enable marveen-dashboard.service marveen-channels.service
+    systemctl --user restart marveen-dashboard.service marveen-channels.service || true
+  else
+    say "Nincs aktív user systemd bus ebben a sessionben (XDG_RUNTIME_DIR/bus)."
+    say "A service fájlok telepítve lettek, indítsd később így: systemctl --user daemon-reload && systemctl --user enable --now marveen-dashboard.service marveen-channels.service"
+    say "Ha szerveres környezet: sudo loginctl enable-linger $(whoami)"
+  fi
 fi
 
 say "Linux telepítés kész."
