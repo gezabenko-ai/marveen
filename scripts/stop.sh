@@ -7,9 +7,9 @@ OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 
 echo "Stopping Marveen..."
 
-if [[ "$OS" == "linux" ]] && command -v systemctl >/dev/null 2>&1; then
+if [[ "${MARVEEN_FORCE_FALLBACK:-0}" != "1" ]] && [[ "$OS" == "linux" ]] && command -v systemctl >/dev/null 2>&1; then
   systemctl --user stop marveen-dashboard.service marveen-channels.service 2>/dev/null || true
-elif [[ "$OS" == "darwin" ]] && command -v launchctl >/dev/null 2>&1; then
+elif [[ "${MARVEEN_FORCE_FALLBACK:-0}" != "1" ]] && [[ "$OS" == "darwin" ]] && command -v launchctl >/dev/null 2>&1; then
   launchctl unload "$HOME/Library/LaunchAgents/com.marveen.dashboard.plist" 2>/dev/null || true
   launchctl unload "$HOME/Library/LaunchAgents/com.marveen.channels.plist" 2>/dev/null || true
 fi
