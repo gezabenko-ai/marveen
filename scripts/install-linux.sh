@@ -91,11 +91,16 @@ fi
 
 if [[ "${MARVEEN_CI:-0}" != "1" ]] && ! command -v claude >/dev/null 2>&1; then
   say "Hiányzik a Claude CLI"
-  if ask_yes_no "Telepítsem most? (npm install -g @anthropic-ai/claude-code)" 1; then
-    npm install -g @anthropic-ai/claude-code || {
-      say "Claude CLI telepítése nem sikerült. Próbáld: sudo npm install -g @anthropic-ai/claude-code"
+  if ask_yes_no "Telepítsem most? (curl -fsSL https://claude.ai/install.sh | bash)" 1; then
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL https://claude.ai/install.sh | bash || {
+        say "Claude CLI telepítése nem sikerült. Próbáld kézzel: curl -fsSL https://claude.ai/install.sh | bash"
+        exit 1
+      }
+    else
+      say "A curl hiányzik. Telepítsd előbb a curl-t, majd futtasd: curl -fsSL https://claude.ai/install.sh | bash"
       exit 1
-    }
+    fi
   else
     say "Megszakítva. Telepítsd a Claude CLI-t, majd futtasd újra."
     exit 1
