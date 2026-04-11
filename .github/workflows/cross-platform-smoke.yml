@@ -1,0 +1,43 @@
+name: cross-platform-smoke
+
+on:
+  push:
+    branches:
+      - main
+      - ci/**
+      - linux-systemd-crossplatform
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build --silent
+
+      - name: Test
+        run: npm test --silent
+
+      - name: Shell syntax check
+        run: |
+          bash -n install.sh
+          bash -n scripts/install-linux.sh
+          bash -n scripts/start.sh
+          bash -n scripts/stop.sh
+          bash -n update.sh
