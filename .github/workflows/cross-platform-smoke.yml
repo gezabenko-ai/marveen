@@ -25,19 +25,34 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install deps
-        run: npm ci
-
-      - name: Build
-        run: npm run build --silent
-
-      - name: Test
-        run: npm test --silent
+      - name: Install + build + tests
+        env:
+          MARVEEN_CI: "1"
+        run: |
+          bash ./install.sh
+          npm test --silent
 
       - name: Shell syntax check
         run: |
           bash -n install.sh
+          bash -n scripts/install-ci.sh
           bash -n scripts/install-linux.sh
           bash -n scripts/start.sh
           bash -n scripts/stop.sh
+          bash -n scripts/channels.sh
           bash -n update.sh
+
+      - name: Linux systemd unit verify
+        if: runner.os == 'Linux'
+        run: |
+          systemd-analyze verify deploy/systemd-user/marveen-dashboard.service deploy/systemd-user/marveen-channels.service
+
+      - name: macOS plist lint
+        if: runner.os == 'macOS'
+        run: |
+          plutil -lint "$HOME/Library/LaunchAgents/com.marveen.dashboard.plist"
+          plutil -lint "$HOME/Library/LaunchAgents/com.marveen.channels.plist"
+
+      - name: Runtime smoke (post-install)
+        run: |
+          bash scripts/ci/runtime-smoke.sh

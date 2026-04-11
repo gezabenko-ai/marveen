@@ -14,9 +14,13 @@ NC='\033[0m'
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+if [[ "${MARVEEN_CI:-0}" == "1" ]]; then
+  exec "$INSTALL_DIR/scripts/install-ci.sh"
+fi
+
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 if [[ "$OS" == "linux" ]]; then
-  exec "$(cd "$(dirname "$0")" && pwd)/scripts/install-linux.sh"
+  exec "$INSTALL_DIR/scripts/install-linux.sh"
 fi
 
 
