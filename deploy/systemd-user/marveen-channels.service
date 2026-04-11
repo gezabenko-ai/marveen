@@ -1,0 +1,16 @@
+[Unit]
+Description=Marveen Channels (Telegram Bridge)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/marveen
+ExecStart=/usr/bin/env bash %h/marveen/scripts/channels.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:%h/marveen/store/channels.log
+StandardError=append:%h/marveen/store/channels.log
+Environment=PATH=%h/.local/bin:%h/.bun/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target

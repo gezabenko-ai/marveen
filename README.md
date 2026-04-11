@@ -70,6 +70,17 @@ Időzített feladatok és heartbeat monitorok beállítása:
 - Feladat: mindig szól az eredménnyel
 - Heartbeat: csendes ellenőrzés, csak fontosnál értesít
 
+
+### Linux (Ubuntu/Debian)
+
+A telepítő Linuxon automatikusan a `scripts/install-linux.sh` folyamatra vált,
+és systemd user service-eket használ (`marveen-dashboard`, `marveen-channels`).
+
+Reboot utáni automatikus induláshoz ajánlott:
+```bash
+sudo loginctl enable-linger $(whoami)
+```
+
 ### Frissítés
 ```bash
 ./update.sh
