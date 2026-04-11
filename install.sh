@@ -14,6 +14,12 @@ NC='\033[0m'
 
 INSTALL_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+if [[ "$OS" == "linux" ]]; then
+  exec "$(cd "$(dirname "$0")" && pwd)/scripts/install-linux.sh"
+fi
+
+
 clear
 echo ""
 echo -e "${BOLD}  ▐▛███▜▌   Marveen${NC}"

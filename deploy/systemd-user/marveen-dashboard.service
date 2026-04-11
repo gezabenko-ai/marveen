@@ -1,0 +1,17 @@
+[Unit]
+Description=Marveen Dashboard Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/marveen
+ExecStart=/usr/bin/env node %h/marveen/dist/index.js
+Restart=always
+RestartSec=5
+StandardOutput=append:%h/marveen/store/dashboard.log
+StandardError=append:%h/marveen/store/dashboard.log
+Environment=NODE_ENV=production
+Environment=PATH=%h/.local/bin:%h/.bun/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=default.target
