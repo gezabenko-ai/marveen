@@ -78,6 +78,18 @@ async function collectData(): Promise<HeartbeatData> {
   return { timestamp: new Date(), calendar, kanban, system, tasks }
 }
 
+// Kanban-card b71579c1 (Geza 2026-05-26): the heartbeat agent may report
+// "nothing to notify" with the literal sentinel NOOP. We accept tolerant
+// surrounding whitespace + an optional trailing period (the LLM
+// occasionally writes "NOOP." instead of bare "NOOP"). Anything else
+// counts as real content and is forwarded to Telegram.
+export function isNoopResponse(text: string | null | undefined): boolean {
+  if (!text) return true
+  const trimmed = text.trim()
+  if (!trimmed) return true
+  return /^NOOP\.?\s*$/i.test(trimmed)
+}
+
 // --- Notification filter ---
 
 function shouldNotify(data: HeartbeatData): boolean {
@@ -119,6 +131,11 @@ function buildAgentPrompt(data: HeartbeatData): string {
   prompt += `Az alabbi adatokat gyujtottem nativ modon (API/DB). Fogalmazz tomor, emberi osszefoglalot Szabolcsnak.\n`
   prompt += `FONTOS: Nezd meg az emaileket is MCP-n keresztul (search_emails, utolso 2 ora, olvasatlanok).\n`
   prompt += `Hasznald a HEARTBEAT.md formatumot.\n\n`
+  // Kanban-card b71579c1 (Geza 2026-05-26): a "Csendes ablak, nem kuldok"
+  // valasz IS keruljon ki -- ne kuldjon paradox uzenetet, ami pont onmagat
+  // ironikusan magyarazza. Ha nincs ertesitendo, valaszul egyetlen szo: NOOP.
+  // A code (executeHeartbeat) ezt szuri es nem hivja a notifyTelegram-ot.
+  prompt += `FONTOS: ha nincs ertesitendo (nincs urgent kanban / fontos naptari esemeny / komoly email / rendszer-hiba), valaszolj egyetlen szoval: NOOP. Mas szoveget NE generalj. Inkabb hallgass, mint paradox "csendes ablak"-uzenetet kuldj.\n\n`
 
   // Calendar -- event summaries and attendee names come from whoever sent the
   // invite, so every one is wrapped individually as untrusted data.
@@ -217,10 +234,12 @@ async function executeHeartbeat(): Promise<void> {
 
   try {
     const { text } = await runAgent(prompt)
-    if (text) {
-      await notifyTelegram(text)
-      logger.info('Heartbeat ertesites elkuldve')
+    if (isNoopResponse(text)) {
+      logger.info('Heartbeat agent NOOP -- nincs Telegram ping')
+      return
     }
+    await notifyTelegram(text as string)
+    logger.info('Heartbeat ertesites elkuldve')
   } catch (err) {
     logger.error({ err }, 'Heartbeat agent hiba')
   }
